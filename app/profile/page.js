@@ -1,65 +1,75 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
-  // 1. Définir un état pour le "user" (null au départ)
-  // 2. Définir un état pour le "isRefreshing" (false au départ)
-  // 3. Définir le "router"
+  const [user, setUser] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchProfile = async () => {
-      try {    
-        // 4. Récupérer le "token" et le "refreshToken" du localStorage
+      try {
+        const token = localStorage.getItem('accessToken');
+        const refreshToken = localStorage.getItem('refreshToken');
         
-        // 5. Faire la requête vers "/api/protected"
-        
-        // 6. Si la réponse n'est pas bonne, a un status 401, que "isRefreshing" est "false" et qu'on a bien un "refreshToken"
-        if () {
-          // 7. Passer isRefreshing à "true"
+        if (!token) {
+          router.push('/login');
+          return;
+        }
 
-          // 8. Faire la requête vers "'/api/refresh"
+        const response = await fetch('/api/protected', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-          // 9. Si la réponse est bonne
-          if () {
-            // 10. Récupérer le token dans la réponse
-            // 11. Stocker ce token dans le localStorage
-            // 12. Passer isRefreshing à "false"
-            // 13. Appeler la fonction "fetchProfile"
+        if (response.status === 401 && refreshToken) {
+          setIsRefreshing(true);
+          
+          const refreshResponse = await fetch('/api/refresh', {
+            method: 'POST',
+            body: JSON.stringify({ refreshToken }),
+            headers: { 'Content-Type': 'application/json' },
+          });
+
+          if (refreshResponse.ok) {
+            const { accessToken } = await refreshResponse.json();
+            localStorage.setItem('accessToken', accessToken);
+            setIsRefreshing(false);
+            fetchProfile(); // Réessayer de récupérer le profil après le rafraîchissement
           } else {
-            // 14. Passer isRefreshing à "false"
-            // 15. Déconnecter l'utilisateur
+            setIsRefreshing(false);
+            router.push('/login');
           }
         } else if (response.ok) {
-          // 16. Récupérer les données de la réponse
-          // 17. Utiliser "setUser" pour mettre à jour l'utilisateur avec les données récupérées.
+          const data = await response.json();
+          setUser(data);
         }
       } catch (error) {
-        // 18. Rediriger vers la page "/login"
-        router.push('/login'); 
+        router.push('/login');
       }
     };
 
-    // 19. Récupérer le "token"
-    if (!token) {
-      // 20. Rediriger vers la page "/login"
-      router.push('/login');
-    } else {
-      // 21. Appeler la fonction "fetchProfile
-      fetchProfile();
-    }
-  }, []);
+    fetchProfile();
+  }, [router]);
 
   const handleLogout = () => {
-    // 22. Supprimer le "token" et le "refreshToken" du localStorage
-    // 23. Rediriger vers la page "/login"
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('username');  // Supprimer aussi le username du localStorage
+    router.push('/login');
   };
+
+  const storedUsername = localStorage.getItem('username'); // Récupérer le username du localStorage
 
   return (
     <div>
       <h1>Profile Page</h1>
-      {user ? <p>Welcome, {user.username}!</p> : <p>Loading...</p>}
+      {isRefreshing ? <p>Refreshing your session...</p> : user ? <p>Welcome, {user.username}!</p> : <p>Loading...</p>}
+      {/* Affichage du username du localStorage si l'utilisateur n'est pas encore chargé */}
+      {!user && storedUsername && <p>Welcome, {storedUsername}!</p>}
       <button onClick={handleLogout}>Logout</button>
     </div>
   );

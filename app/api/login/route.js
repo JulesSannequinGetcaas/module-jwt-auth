@@ -20,14 +20,14 @@ export async function POST(request) {
     const accessToken = jwt.sign(
       { username: mockUser.username, id: 'user-123' },  // Payload contenant des informations utiles
       SECRET_KEY,
-      { expiresIn: '1h' }  // Le token expire après 1 heure
+      { expiresIn:process.env.JWT_REFRESH_EXPIRATION }  // Le token expire après 1 heure
     );
 
     // 5. Génération du refresh token (module jsonwebtoken)
     const refreshToken = jwt.sign(
       { username: mockUser.username, id: 'user-123' }, 
       REFRESH_SECRET_KEY, 
-      { expiresIn: '7d' }  // Le refresh token expire après 7 jours
+      { expiresIn: process.env.JWT_REFRESH_EXPIRATION  }  // Le refresh token expire après 7 jours
     );
 
     // 6. Envoi des tokens dans la réponse

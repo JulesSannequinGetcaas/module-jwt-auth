@@ -4,30 +4,32 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
-  const [user, setUser] = useState(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [user, setUser] = useState(null); 
+  const [isRefreshing, setIsRefreshing] = useState(false); 
   const router = useRouter();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
+        const token = localStorage.getItem('accessToken'); 
         const refreshToken = localStorage.getItem('refreshToken');
-        
+
         if (!token) {
-          router.push('/login');
+          handleLogout(); 
           return;
         }
 
+      
         const response = await fetch('/api/protected', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
-        if (response.status === 401 && refreshToken) {
+        if (response.status === 401 && !isRefreshing && refreshToken) {
+        
           setIsRefreshing(true);
-          
+
           const refreshResponse = await fetch('/api/refresh', {
             method: 'POST',
             body: JSON.stringify({ refreshToken }),
@@ -36,41 +38,45 @@ export default function ProfilePage() {
 
           if (refreshResponse.ok) {
             const { accessToken } = await refreshResponse.json();
-            localStorage.setItem('accessToken', accessToken);
+            localStorage.setItem('accessToken', accessToken); // Mettre à jour le token dans localStorage
             setIsRefreshing(false);
-            fetchProfile(); // Réessayer de récupérer le profil après le rafraîchissement
+            fetchProfile(); 
           } else {
             setIsRefreshing(false);
-            router.push('/login');
+            handleLogout(); 
           }
         } else if (response.ok) {
           const data = await response.json();
-          setUser(data);
+          setUser(data.user); 
+        } else {
+          handleLogout(); 
         }
       } catch (error) {
-        router.push('/login');
+        handleLogout(); 
       }
     };
 
     fetchProfile();
-  }, [router]);
+  }, [isRefreshing]); // Dépendance pour redéclencher si le token est rafraîchi
 
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
-    localStorage.removeItem('username');  // Supprimer aussi le username du localStorage
-    router.push('/login');
+    router.push('/login'); // Redirection vers la page de connexion
   };
-
-  const storedUsername = localStorage.getItem('username'); // Récupérer le username du localStorage
 
   return (
     <div>
       <h1>Profile Page</h1>
-      {isRefreshing ? <p>Refreshing your session...</p> : user ? <p>Welcome, {user.username}!</p> : <p>Loading...</p>}
-      {/* Affichage du username du localStorage si l'utilisateur n'est pas encore chargé */}
-      {!user && storedUsername && <p>Welcome, {storedUsername}!</p>}
+      {isRefreshing ? (
+        <p>Refreshing your session...</p>
+      ) : user ? (
+        <p>Welcome, {user.username}!</p> // Utilisation du state pour afficher le username
+      ) : (
+        <p>Loading...</p>
+      )}
       <button onClick={handleLogout}>Logout</button>
     </div>
   );
 }
+

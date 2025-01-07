@@ -24,7 +24,7 @@ export async function POST(request) {
     const newAccessToken = jwt.sign(
       { username: decoded.username, id: decoded.id },
       SECRET_KEY,
-      { expiresIn: '1h' } // Token valide pour 1 heure
+      { expiresIn: process.env.JWT_EXPIRATION } // Token valide pour 1 heure
     );
 
     // 5. Renvoyer le nouveau token en réponse

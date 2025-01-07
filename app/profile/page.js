@@ -26,7 +26,7 @@ export default function ProfilePage() {
           },
         });
 
-        if (response.status === 401 && !isRefreshing && refreshToken) {
+        if (!response.ok && response.status === 401 && !isRefreshing && refreshToken) {
         
           setIsRefreshing(true);
 
@@ -57,7 +57,7 @@ export default function ProfilePage() {
     };
 
     fetchProfile();
-  }, [isRefreshing]); // Dépendance pour redéclencher si le token est rafraîchi
+  }, []); // Dépendance pour redéclencher si le token est rafraîchi
 
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
